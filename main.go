@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -31,18 +32,7 @@ var (
 	// Mutex to guard read/write to piStatuses
 	statusMutex sync.Mutex
 	// List of Pi hostnames
-	piHosts = []string{
-		"pi1.local",
-		"pi2.local",
-		"pi3.local",
-		"pi4.local",
-		"pi5.local",
-		"pi6.local",
-		"pi7.local",
-		"pi8.local",
-		"pi9.local",
-		"pi10.local",
-	}
+	piHosts = []string{}
 	// WebSocket upgrader
 	upgrader = websocket.Upgrader{}
 	// Slice of currently connected WebSocket clients
@@ -123,6 +113,8 @@ func broadcastStatus() {
 }
 
 func main() {
+	piHosts = strings.Split(os.Getenv("PI_HOSTS"), ",")
+
 	// Initialize statuses to "UNKNOWN" at startup
 	for _, host := range piHosts {
 		piStatuses[host] = "UNKNOWN"
