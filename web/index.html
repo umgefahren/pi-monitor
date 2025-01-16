@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Raspberry Pi Status Dashboard</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 20px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 300px;
+      }
+      th,
+      td {
+        padding: 8px;
+        border: 1px solid #ccc;
+      }
+      th {
+        background: #f0f0f0;
+      }
+      .up {
+        background: #c8fac8; /* light green */
+      }
+      .down {
+        background: #fac8c8; /* light red */
+      }
+      .unknown {
+        background: #fafac8; /* light yellow */
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Raspberry Pi Status Dashboard</h1>
+    <table id="statusTable">
+      <thead>
+        <tr>
+          <th>Pi Host</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Rows populated via JavaScript -->
+      </tbody>
+    </table>
+
+    <script>
+      const ws = new WebSocket("ws://" + window.location.host + "/ws");
+
+      const statusTable = document
+        .getElementById("statusTable")
+        .querySelector("tbody");
+
+      // A helper to create or update a row in the table
+      function upsertRow(host, status) {
+        let row = document.getElementById("row-" + host);
+        if (!row) {
+          row = document.createElement("tr");
+          row.id = "row-" + host;
+
+          let hostCell = document.createElement("td");
+          hostCell.textContent = host;
+
+          let statusCell = document.createElement("td");
+          statusCell.id = "status-" + host;
+
+          row.appendChild(hostCell);
+          row.appendChild(statusCell);
+          statusTable.appendChild(row);
+        }
+
+        let statusCell = document.getElementById("status-" + host);
+        statusCell.textContent = status;
+
+        // Update row styling
+        row.classList.remove("up", "down", "unknown");
+        switch (status) {
+          case "UP":
+            row.classList.add("up");
+            break;
+          case "DOWN":
+            row.classList.add("down");
+            break;
+          default:
+            row.classList.add("unknown");
+        }
+      }
+
+      ws.onmessage = function (event) {
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === "update") {
+          const data = msg.data;
+          data.forEach((pi) => {
+            upsertRow(pi.host, pi.status);
+          });
+        }
+      };
+
+      ws.onopen = function () {
+        console.log("WebSocket connection opened.");
+      };
+      ws.onclose = function () {
+        console.log("WebSocket connection closed.");
+      };
+      ws.onerror = function (err) {
+        console.error("WebSocket error:", err);
+      };
+    </script>
+  </body>
+</html>
